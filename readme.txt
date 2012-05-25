@@ -2,7 +2,7 @@
 Contributors: themeblvd
 Tags: themeblvd, wpml, multilingual, localization, language
 Requires at least: 3.2
-Stable tag: 1.0.0-beta1
+Stable tag: 1.0.0-beta2
 
 This plugin adds additional WPML compatibility for Theme Blvd themes. 
 
@@ -21,7 +21,14 @@ More documentation coming soon...
 
 1. Appearance > Theme Options
 
+2. WPML > {Theme Name}
+
 == Changelog ==
+
+= 1.0.0-beta2 =
+
+* Added frontend theme location feature to display language flags.
+* Added settings page to WPML menu for selection of frontend theme locations.
 
 = 1.0.0-beta1 =
 
