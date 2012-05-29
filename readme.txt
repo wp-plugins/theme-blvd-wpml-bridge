@@ -14,7 +14,7 @@ Responsive WordPress themes from [Theme Blvd](http://themeforest.net/user/ThemeB
 
 Official Plugin Website: [http://wpml.themeblvd.com](http://wpml.themeblvd.com "Theme Blvd and WPML")
 
-== Documentation ==
+= Documentation =
 
 The following articles cover general topics and best practices in using WPML specifically with Theme Blvd themes and this *Theme Blvd WPML Bridge* plugin.
 
