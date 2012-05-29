@@ -18,17 +18,16 @@ Official Plugin Website: [http://wpml.themeblvd.com](http://wpml.themeblvd.com "
 
 The following articles cover general topics and best practices in using WPML specifically with Theme Blvd themes and this *Theme Blvd WPML Bridge* plugin.
 
-*[Compatible Themes](http://wpml.themeblvd.com/documentation/compatible-themes/ "Compatible Themes")
-*[String Translation](http://wpml.themeblvd.com/documentation/string-translation/ "String Translation")
-*[text]http://wpml.themeblvd.com/documentation/wpml-bridge-plugin/
-*[WPML Bridge Plugin](url "WPML Bridge Plugin")
-*[Theme Options](http://wpml.themeblvd.com/documentation/theme-options/ "Theme Options")
-*[Custom Homepage Layouts](http://wpml.themeblvd.com/documentation/custom-homepage-layouts/ "Custom Homepage Layouts")
-*[Page Templates and Options](http://wpml.themeblvd.com/documentation/page-templates/ "Page Templates and Options")
-*[Custom Layouts & Static Pages](http://wpml.themeblvd.com/documentation/custom-layout-and-static-pages/ "Custom Layouts & Static Pages")
-*[WPML Breadcrumbs](http://wpml.themeblvd.com/documentation/wpml-breadcrumbs/ "WPML Breadcrumbs")
-*[Widgets and Widget Areas](http://wpml.themeblvd.com/documentation/widget-areas/ "Widgets and Widget Areas")
-*[Frontend Language Switchers](http://wpml.themeblvd.com/documentation/frontend-integration/ "Frontend Language Switchers")
+* [Compatible Themes](http://wpml.themeblvd.com/documentation/compatible-themes/ "Compatible Themes")
+* [String Translation](http://wpml.themeblvd.com/documentation/string-translation/ "String Translation")
+* [WPML Bridge Plugin](http://wpml.themeblvd.com/documentation/wpml-bridge-plugin/ "WPML Bridge Plugin")
+* [Theme Options](http://wpml.themeblvd.com/documentation/theme-options/ "Theme Options")
+* [Custom Homepage Layouts](http://wpml.themeblvd.com/documentation/custom-homepage-layouts/ "Custom Homepage Layouts")
+* [Page Templates and Options](http://wpml.themeblvd.com/documentation/page-templates/ "Page Templates and Options")
+* [Custom Layouts & Static Pages](http://wpml.themeblvd.com/documentation/custom-layout-and-static-pages/ "Custom Layouts & Static Pages")
+* [WPML Breadcrumbs](http://wpml.themeblvd.com/documentation/wpml-breadcrumbs/ "WPML Breadcrumbs")
+* [Widgets and Widget Areas](http://wpml.themeblvd.com/documentation/widget-areas/ "Widgets and Widget Areas")
+* [Frontend Language Switchers](http://wpml.themeblvd.com/documentation/frontend-integration/ "Frontend Language Switchers")
 
 == Installation ==
 
