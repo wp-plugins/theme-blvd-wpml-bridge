@@ -3,7 +3,7 @@
 Plugin Name: Theme Blvd WPML Bridge
 Plugin URI: http://wpml.themeblvd.com
 Description: This plugin creates a bridge between the Theme Blvd framework and the WPML plugin.
-Version: 1.0.0
+Version: 1.0.1
 Author: Jason Bobich
 Author URI: http://jasonbobich.com
 License: GPL2
@@ -450,107 +450,109 @@ function tb_wpml_optionsframework_validate( $input ) {
  * @since 1.0.0
  */
 
-function optionsframework_page() {
+if( ! function_exists( 'optionsframework_page' ) ) { // This check is only needed for initial plugin activation
+	function optionsframework_page() {
+		
+		global $_GET;
+		
+		// Don't continue if the WPML plugin 
+		// hasn't been installed.
+		if( ! function_exists( 'icl_get_languages' ) ) {
+			echo '<div class="tb-wpml-warning">';
+			echo '<p><strong>'.__( 'WARNING: You\'ve activated the Theme Blvd WPML Bridge plugin, but you haven\'t installed the official WPML plugin. You\'ll need that plugin installed in order to move forward.', 'tb_wpml' ).'</strong></p>';
+			echo '<p><a href="http://wpml.org/?aid=8007&affiliate_key=MNKoTksdyWns" target="_blank">'.__('Download WPML Plugin', 'tb_wpml' ).'</p></a>';
+			echo '</div>';
+			return;
+		}
 	
-	global $_GET;
+		// Get all languages
+		$langs = icl_get_languages();
 	
-	// Don't continue if the WPML plugin 
-	// hasn't been installed.
-	if( ! function_exists( 'icl_get_languages' ) ) {
-		echo '<div class="tb-wpml-warning">';
-		echo '<p><strong>'.__( 'WARNING: You\'ve activated the Theme Blvd WPML Bridge plugin, but you haven\'t installed the official WPML plugin. You\'ll need that plugin installed in order to move forward.', 'tb_wpml' ).'</strong></p>';
-		echo '<p><a href="http://wpml.org/?aid=8007&affiliate_key=MNKoTksdyWns" target="_blank">'.__('Download WPML Plugin', 'tb_wpml' ).'</p></a>';
-		echo '</div>';
-		return;
-	}
-
-	// Get all languages
-	$langs = icl_get_languages();
-
-	// Setup check array
-	$langs_check = array();
-	foreach( $langs as $key => $lang )
-		$langs_check[] = $key;
-	
-	// Set default language
-	$default_lang = 'en'; // backup
-	$wpml_options = get_option( 'icl_sitepress_settings' );
-	if( isset( $wpml_options['default_language'] ) ) 
-		$default_lang = $wpml_options['default_language'];
-	
-	// Set current options language
-	$current_lang = $default_lang;
-	if( isset( $_GET['themeblvd_lang'] ) )
-		$current_lang = $_GET['themeblvd_lang'];
-	if( ! in_array( $current_lang, $langs_check ) )
+		// Setup check array
+		$langs_check = array();
+		foreach( $langs as $key => $lang )
+			$langs_check[] = $key;
+		
+		// Set default language
+		$default_lang = 'en'; // backup
+		$wpml_options = get_option( 'icl_sitepress_settings' );
+		if( isset( $wpml_options['default_language'] ) ) 
+			$default_lang = $wpml_options['default_language'];
+		
+		// Set current options language
 		$current_lang = $default_lang;
-		
-	// Retrieive options framework container same as normal
-	$optionsframework_settings = get_option('optionsframework');
-	
-	// Gets the unique option id
-	if ( isset( $optionsframework_settings['id'] ) ) {
-		// Retrieve options ID as normal
-		$option_name = $optionsframework_settings['id'];
-		$option_base = $optionsframework_settings['id'];
-		
-		// And here's our twist to the system --
-		// If we're editing options for a specific language 
-		// that is NOT the default, we adjust the options 
-		// framework ID to append '_{language}'.
-		if( $default_lang != $current_lang )
-			$option_name .= '_'.$current_lang;
+		if( isset( $_GET['themeblvd_lang'] ) )
+			$current_lang = $_GET['themeblvd_lang'];
+		if( ! in_array( $current_lang, $langs_check ) )
+			$current_lang = $default_lang;
 			
-	} else {
-		// Total fallback. Should never get used.
-		$option_name = 'optionsframework';
-		$option_base = 'optionsframework';
-	}
-	
-	// Determine value for settings_fields()
-	$settings_fields = 'optionsframework';
-	if( $current_lang != $default_lang )
-		$settings_fields .= '_'.$current_lang;
-	
-	// Get settings and form
-	$settings = get_option($option_name);
-    $options = themeblvd_get_formatted_options();
-	$return = optionsframework_fields( $option_name, $options, $settings  );
-	settings_errors();
-	?>
-	<div class="wrap">
-		<form action="options.php" method="post">
-			<div class="admin-module-header">
-				<?php do_action( 'themeblvd_admin_module_header', 'options' ); ?>
-			</div>
-		    <?php screen_icon( 'themes' ); ?>
-		    <h2 class="nav-tab-wrapper">
-		        <?php echo $return[1]; ?>
-		    </h2>
-			<div class="metabox-holder">
-			    <div id="optionsframework">
-					<input type="hidden" value="<?php echo $option_base; ?>" name="option_page_base">
-					<?php settings_fields($settings_fields); ?>
-					<?php echo $return[0]; /* Settings */ ?>
-			        <div id="optionsframework-submit">
-					<input type="submit" class="button-primary" name="update" value="<?php esc_attr_e( 'Save Options', 'tb_wpml' ); ?>" />
-					<input type="submit" class="reset-button button-secondary" name="reset" value="<?php esc_attr_e( 'Restore Defaults', 'tb_wpml' ); ?>" onclick="return confirm( '<?php print esc_js( __( 'Click OK to reset. Any theme settings will be lost!', 'tb_wpml' ) ); ?>' );" />
-					<?php if( $current_lang != $default_lang ) : ?>
-						<input type="submit" class="reset-button button-secondary" name="match" value="<?php esc_attr_e( 'Match Default Language', 'tb_wpml' ); ?>" onclick="return confirm( '<?php print esc_js( __( 'Click OK to match options. You will lose your current settings for this language and they will be matched to whatever you\'ve set for your default language.', 'tb_wpml' ) ); ?>' );" />
-					<?php endif; ?>
-					<div class="clear"></div>
-					</div>
-					<div class="tb-footer-text">
-						<?php do_action( 'themeblvd_options_footer_text' ); ?>
-					</div><!-- .tb-footer-text (end) -->
-				</div> <!-- #container (end) -->
-				<div class="admin-module-footer">
-					<?php do_action( 'themeblvd_admin_module_footer', 'options' ); ?>
+		// Retrieive options framework container same as normal
+		$optionsframework_settings = get_option('optionsframework');
+		
+		// Gets the unique option id
+		if ( isset( $optionsframework_settings['id'] ) ) {
+			// Retrieve options ID as normal
+			$option_name = $optionsframework_settings['id'];
+			$option_base = $optionsframework_settings['id'];
+			
+			// And here's our twist to the system --
+			// If we're editing options for a specific language 
+			// that is NOT the default, we adjust the options 
+			// framework ID to append '_{language}'.
+			if( $default_lang != $current_lang )
+				$option_name .= '_'.$current_lang;
+				
+		} else {
+			// Total fallback. Should never get used.
+			$option_name = 'optionsframework';
+			$option_base = 'optionsframework';
+		}
+		
+		// Determine value for settings_fields()
+		$settings_fields = 'optionsframework';
+		if( $current_lang != $default_lang )
+			$settings_fields .= '_'.$current_lang;
+		
+		// Get settings and form
+		$settings = get_option($option_name);
+	    $options = themeblvd_get_formatted_options();
+		$return = optionsframework_fields( $option_name, $options, $settings  );
+		settings_errors();
+		?>
+		<div class="wrap">
+			<form action="options.php" method="post">
+				<div class="admin-module-header">
+					<?php do_action( 'themeblvd_admin_module_header', 'options' ); ?>
 				</div>
-			</div>
-		</form>
-	</div><!-- .wrap (end) -->
-<?php
+			    <?php screen_icon( 'themes' ); ?>
+			    <h2 class="nav-tab-wrapper">
+			        <?php echo $return[1]; ?>
+			    </h2>
+				<div class="metabox-holder">
+				    <div id="optionsframework">
+						<input type="hidden" value="<?php echo $option_base; ?>" name="option_page_base">
+						<?php settings_fields($settings_fields); ?>
+						<?php echo $return[0]; /* Settings */ ?>
+				        <div id="optionsframework-submit">
+						<input type="submit" class="button-primary" name="update" value="<?php esc_attr_e( 'Save Options', 'tb_wpml' ); ?>" />
+						<input type="submit" class="reset-button button-secondary" name="reset" value="<?php esc_attr_e( 'Restore Defaults', 'tb_wpml' ); ?>" onclick="return confirm( '<?php print esc_js( __( 'Click OK to reset. Any theme settings will be lost!', 'tb_wpml' ) ); ?>' );" />
+						<?php if( $current_lang != $default_lang ) : ?>
+							<input type="submit" class="reset-button button-secondary" name="match" value="<?php esc_attr_e( 'Match Default Language', 'tb_wpml' ); ?>" onclick="return confirm( '<?php print esc_js( __( 'Click OK to match options. You will lose your current settings for this language and they will be matched to whatever you\'ve set for your default language.', 'tb_wpml' ) ); ?>' );" />
+						<?php endif; ?>
+						<div class="clear"></div>
+						</div>
+						<div class="tb-footer-text">
+							<?php do_action( 'themeblvd_options_footer_text' ); ?>
+						</div><!-- .tb-footer-text (end) -->
+					</div> <!-- #container (end) -->
+					<div class="admin-module-footer">
+						<?php do_action( 'themeblvd_admin_module_footer', 'options' ); ?>
+					</div>
+				</div>
+			</form>
+		</div><!-- .wrap (end) -->
+	<?php
+	}
 }
 
 /**
