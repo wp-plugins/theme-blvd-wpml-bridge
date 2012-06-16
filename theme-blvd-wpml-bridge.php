@@ -3,7 +3,7 @@
 Plugin Name: Theme Blvd WPML Bridge
 Plugin URI: http://wpml.themeblvd.com
 Description: This plugin creates a bridge between the Theme Blvd framework and the WPML plugin.
-Version: 1.0.1
+Version: 1.0.2
 Author: Jason Bobich
 Author URI: http://jasonbobich.com
 License: GPL2
@@ -37,27 +37,14 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 /*-----------------------------------------------------------------------------------*/
 
 /**
- * Re-configure theme global settings if this isn't default 
- * language.
+ * Get theme options that correspond to the current language. 
  *
- * When the theme runs on the frontend, the Theme Blvd framework 
- * creates a global array in which it stores all of the current 
- * theme's options. This makes it so every time themeblvd_get_option
- * is called, we don't have to pull from the database with WP's 
- * get_option.
- *
- * So, in this function, what we're doing is essentally setting up the 
- * global variable in the same way, but with the twist of taking into 
- * account the current language in pulling the option set. And then, 
- * we're hooking it with a priority "6" to template_redirect so it 
- * comes just AFTER the default framework function.
- *
- * @since 1.0.0
+ * @since 1.0.2
  */
- 
-function tb_wpml_options() {
+
+function tp_wpml_get_theme_options(){
 	
-	global $_themeblvd_theme_settings;
+	$options = array();
 	
 	// Only continue if WPML is running and the
 	// current language constant has been defined.
@@ -77,14 +64,131 @@ function tb_wpml_options() {
 		if( $current_lang != $default_lang ) {
 			$config = get_option( 'optionsframework' );
 			if ( isset( $config['id'] ) )
-				$_themeblvd_theme_settings = get_option( $config['id'].'_'.$current_lang );
+				$options = get_option( $config['id'].'_'.$current_lang );
 		}
 		
 	}
 	
+	return $options;
 }
-add_action( 'template_redirect', 'tb_wpml_options', 6 ); // Run after framework's function with priority 5
 
+/**
+ * Re-configure theme global settings if this isn't default 
+ * language.
+ *
+ * When the theme runs on the frontend, the Theme Blvd framework 
+ * creates a global array in which it stores all of the current 
+ * theme's options. This makes it so every time themeblvd_get_option
+ * is called, we don't have to pull from the database with WP's 
+ * get_option.
+ *
+ * So, in this function, what we're doing is essentally setting up the 
+ * global variable in the same way, but with the twist of taking into 
+ * account the current language in pulling the option set. And then, 
+ * we're hooking it with a priority "6" to template_redirect so it 
+ * comes just AFTER the default framework function.
+ *
+ * Note: In some recent updates we've adjusted the global variable 
+ * to get constructed at the "wp" action just before template_redirect, 
+ * however, we'll leave this as template_redirect for now.
+ *
+ * @since 1.0.0
+ */
+ 
+function tb_wpml_options() {
+	
+	global $_themeblvd_theme_settings;
+	
+	// Get new options
+	$new_options = tp_wpml_get_theme_options();
+	
+	// If WPML is installed, we should have a new set of 
+	// options to apply to the global variable.
+	if( $new_options )
+		$_themeblvd_theme_settings = $new_options;
+	
+}
+add_action( 'template_redirect', 'tb_wpml_options', 6 ); // Run after framework's function with priority 5, although in TB v2.1+ frontent init has been hooked to wp, just before template_redirect
+
+/**
+ * Configure homepage layout.
+ *
+ * Since the theme options and the homepage layout are setup 
+ * within the Theme Blvd framework in the same function, we 
+ * need to write our own filter here to adjust the determined 
+ * homepage layout based on the language.
+ *
+ * @since 1.0.2
+ */
+
+function tb_wpml_homepage_layout( $config ){
+	
+	$builder = false;
+	$sidebar_layout = '';
+	$featured = '';
+	$featured_below = '';
+	
+	// Only move forward if this is the posts homepage
+	if( is_home() ) {
+		
+		// Get new options
+		$options = tp_wpml_get_theme_options();
+		
+		// Only move forward if WPML is installed and we've 
+		// retrived options for current language properly.
+		if( $options ) {
+			if( isset( $options['homepage_content'] ) ){
+				if( $options['homepage_content'] == 'custom_layout' && isset( $options['homepage_custom_layout'] ) ) {
+					$layout_id = $options['homepage_custom_layout'];
+					if( $layout_id ) {
+						$builder = $layout_id;
+						$layout_post_id = themeblvd_post_id_by_name( $layout_id, 'tb_layout' );
+						$layout_settings = get_post_meta( $layout_post_id, 'settings', true );
+						$sidebar_layout = $layout_settings['sidebar_layout'];
+					} else {
+						$builder = 'error';
+					}
+				}
+			}
+		}
+		
+		// Adjust featured area if needed
+		if( $builder ) {
+			$layout_post_id = themeblvd_post_id_by_name( $builder, 'tb_layout' );
+			$elements = get_post_meta( $layout_post_id, 'elements', true );
+			$featured = themeblvd_featured_builder_classes( $elements, 'featured' );
+			$featured_below = themeblvd_featured_builder_classes( $elements, 'featured_below' );	
+		}
+		
+		// Modify builder for global config if needed
+		if( $builder )
+			$config['builder'] = $builder;
+		
+		// Modify sidebar layout for global config if needed
+		if( $sidebar_layout ) {
+			
+			// If sidebar layout is default, figure out the default sidebar layout
+			if( $sidebar_layout == 'default' )
+				$sidebar_layout = themeblvd_get_option( 'sidebar_layout', null, apply_filters( 'themeblvd_default_sidebar_layout', 'sidebar_right' ) );
+			
+			// Modify global config
+			$config['sidebar_layout'] = $sidebar_layout;
+			
+		}
+		
+		// Modify fearured area for global config if needed
+		if( $featured )
+			$config['featured'] = $featured;
+			
+		// Modify fearured below area for global config if needed
+		if( $featured_below )
+			$config['featured_below'] = $featured_below;
+		
+		
+		return $config;
+	}
+}
+add_filter( 'themeblvd_frontend_config', 'tb_wpml_homepage_layout', 5 );
 
 /**
  * Get flag list.
