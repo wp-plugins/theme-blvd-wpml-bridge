@@ -2,7 +2,7 @@
 Contributors: themeblvd
 Tags: themeblvd, wpml, multilingual, localization, language
 Requires at least: 3.2
-Stable tag: 1.0.3
+Stable tag: 1.0.4
 
 This plugin adds additional WPML compatibility for Theme Blvd themes. 
 
@@ -41,6 +41,10 @@ The following articles cover general topics and best practices in using WPML spe
 2. WPML > {Theme Name}
 
 == Changelog ==
+
+= 1.0.4 =
+
+* This update cooresponds to the slight updates in the interneral options framework structure all compatible Theme Blvd themes received on July 2, 2012.
 
 = 1.0.3 =
 

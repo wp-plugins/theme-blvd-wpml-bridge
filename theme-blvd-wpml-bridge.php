@@ -3,7 +3,7 @@
 Plugin Name: Theme Blvd WPML Bridge
 Plugin URI: http://wpml.themeblvd.com
 Description: This plugin creates a bridge between the Theme Blvd framework and the WPML plugin.
-Version: 1.0.3
+Version: 1.0.4
 Author: Jason Bobich
 Author URI: http://jasonbobich.com
 License: GPL2
@@ -26,7 +26,6 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-
 /*-----------------------------------------------------------------------------------*/
 /* Frontend Integration
 /*
@@ -35,6 +34,47 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 /* of the website. The items in this section are only relevant when the theme
 /* loads on the frontend.
 /*-----------------------------------------------------------------------------------*/
+
+/**
+ * Get global theme options ID. 
+ *
+ * In some theme updates, we've re-structured how we get the ID to 
+ * save options. In order to make sure this plugin works with older
+ * themes, as well, we're creating this function to first check if 
+ * the needed themeblvd function exists and only do the work if it 
+ * hasn't been created yet.
+ *  
+ * @since 1.0.4
+ *
+ * @return string $option_name ID to use with get_option to retrieve theme's options
+ */
+
+function tb_wpml_get_option_name(){
+	
+	// Make sure we have a variable so no errors if it's empty.
+	$option_name = '';
+	
+	// Check for newer function
+	if( function_exists( 'themeblvd_get_option_name' ) ){
+		
+		// Let themeblvd framework do the work. 
+		// This is an up-to-date theme.
+		$option_name = themeblvd_get_option_name();
+		
+	} else {
+	
+		// Legacy method (just a backup for older themes)
+		$config = get_option( 'optionsframework' );
+		if ( isset( $config['id'] ) ) {
+			$option_name = apply_filters( 'themeblvd_option_id', $config['id'] );
+		}
+		
+	}
+	
+	// Return what we have, blank or not.
+	return $option_name;
+	
+}
 
 /**
  * Get theme options that correspond to the current language. 
@@ -62,13 +102,11 @@ function tp_wpml_get_theme_options(){
 		// Adjust theme settings to match language if 
 		// it's different than the default language.
 		if( $current_lang != $default_lang ) {
-			$config = get_option( 'optionsframework' );
-			if ( isset( $config['id'] ) )
-				$options = get_option( $config['id'].'_'.$current_lang );
+			$option_name = tb_wpml_get_option_name();
+			$options = get_option( $option_name.'_'.$current_lang );
 		}
 		
 	}
-	
 	return $options;
 }
 
@@ -328,34 +366,6 @@ add_action( 'after_setup_theme', 'tb_wpml_actions' );
 /*-----------------------------------------------------------------------------------*/
 
 /**
- * Set default values for option set.
- * 
- * This function is run within the next function of this plugin called 
- * "tb_wpml_optionsframework_init" -- Basically it is a copy of our 
- * options framework default function "optionsframework_setdefaults".
- * 
- * The options framework's original function is not designed to be 
- * used more than once with different option sets. So in our modifed 
- * version here, we're allowing a unique value for each option set 
- * to be feed in. This allows us to loop through each language's option
- * set with calling this function within "tb_wpml_optionsframework_init"
- * in order to set default values for each language's option set when it
- * hasn't been configured yet.
- *
- * @since 1.0.0
- */
-
-function tb_wpml_optionsframework_setdefaults( $option_name ) {
-	// Gets the default options data from the array in options.php
-	$options = themeblvd_get_formatted_options();
-	// If the options haven't been added to the database yet, they are added now
-	$values = of_get_default_values();
-	// Add option with default settings
-	if ( isset( $values ) )
-		add_option( $option_name, $values );
-}
-
-/**
  * Initiate theme options after the framework has initiated it's default
  * theme options system.
  * 
@@ -384,15 +394,8 @@ function tb_wpml_optionsframework_init() {
 	if( ! function_exists( 'icl_get_languages' ) )
 		return;
 	
-	// Get current settings	
-	$optionsframework_settings = get_option('optionsframework' );
-	
-	// Gets the unique id, returning a default if it isn't defined
-	if ( isset($optionsframework_settings['id']) ) {
-		$option_name = $optionsframework_settings['id'];
-	} else {
-		$option_name = 'optionsframework';
-	}
+	// Global option name
+	$option_name = tb_wpml_get_option_name();
 	
 	// Get all languages
 	$langs = icl_get_languages();
@@ -408,11 +411,8 @@ function tb_wpml_optionsframework_init() {
 	// no language code appended, and thus was already registered above.
 	foreach ( $langs as $key => $lang ) {
 		if( $key != $default_lang ) {
-			// If the option has no saved data, load the defaults
-			if ( ! get_option( $option_name.'_'.$key ) )
-				tb_wpml_optionsframework_setdefaults( $option_name.'_'.$key );
 			// Register settings
-			register_setting( 'optionsframework'.'_'.$key, $option_name.'_'.$key, 'tb_wpml_optionsframework_validate' );
+			register_setting( $option_name.'_'.$key, $option_name.'_'.$key, 'tb_wpml_optionsframework_validate' );
 		}
 	}
 	
@@ -465,52 +465,83 @@ function tb_wpml_optionsframework_validate( $input ) {
 		return $default_lang_options;
 	} 
 	
+	// Get unique identifier for this theme's options.
+	$option_name = tb_wpml_get_option_name();
+		
 	// Restore Defaults.
+	//
+	// In the event that the user clicked the "Restore Defaults"
+	// button, the options defined in the theme's options.php
+	// file will be added to the option for the active theme.
+	
 	if ( isset( $_POST['reset'] ) ) {
-		add_settings_error( 'options-framework', 'restore_defaults', __( 'Default options restored.', 'tb_wpml' ), 'updated fade' );
+		add_settings_error( $option_name.'_'.$_POST['current_lang'], 'restore_defaults', __( 'Default options restored.', TB_GETTEXT_DOMAIN ), 'error fade' );
 		return of_get_default_values();
 	}
-
-	// Udpdate Settings.	 
-	if ( isset( $_POST['update'] ) ) {
-		$clean = array();
-		$options = themeblvd_get_formatted_options();
-		foreach ( $options as $option ) {
-
-			if ( ! isset( $option['id'] ) ) {
-				continue;
-			}
-
-			if ( ! isset( $option['type'] ) ) {
-				continue;
-			}
-
-			$id = preg_replace( '/\W/', '', strtolower( $option['id'] ) );
-
-			// Set checkbox to false if it wasn't sent in the $_POST
-			if ( 'checkbox' == $option['type'] && ! isset( $input[$id] ) ) {
-				$input[$id] = '0';
-			}
-
-			// Set each item in the multicheck to false if it wasn't sent in the $_POST
-			if ( 'multicheck' == $option['type'] && ! isset( $input[$id] ) ) {
-				foreach ( $option['options'] as $key => $value ) {
-					$input[$id][$key] = '0';
-				}
-			}
-
-			// For a value to be submitted to database it must pass through a sanitization filter
-			if ( has_filter( 'of_sanitize_' . $option['type'] ) ) {
-				$clean[$id] = apply_filters( 'of_sanitize_' . $option['type'], $input[$id], $option );
-			}
-		}
-
-		add_settings_error( 'options-framework', 'save_options', __( 'Options saved.', 'tb_wpml' ), 'updated fade' );
-		return $clean;
+	
+	// Clear options.
+	//
+	// This gives the user a chance to clear the options from 
+	// the database.
+	
+	/* There's no button to do this with WPML Bridge
+	 
+	if ( isset( $_POST['clear'] ) ) {
+		add_settings_error( $option_name, 'restore_defaults', __( 'Options cleared from database.', TB_GETTEXT_DOMAIN ), 'error fade' );
+		return null;
 	}
+	*/
+	 
+	// Udpdate Settings.
+	// 
+	// This runs through all registered options and sanitizes them. 
+	// However, the catch here that is a bit different than the 
+	// original options framework, is that we first check if each 
+	// option was present in the $input before adding it our sanitized 
+	// options to return.
+	//
+	// By doing this, when we save from the customizer, if it doesn't 
+	// include ALL registered options, it will not effect those options 
+	// upon saving that weren't included with the customizer.
+	 
+	$clean = array();
+	$options = themeblvd_get_formatted_options();
+	foreach( $options as $option ){
 
-	// Request Not Recognized.
-	return of_get_default_values();
+		// Skip if we don't have an ID or type.
+		if ( ! isset( $option['id'] ) || ! isset( $option['type'] ) )
+			continue;
+		
+		// Make sure ID is formatted right.
+		$id = preg_replace( '/\W/', '', strtolower( $option['id'] ) );
+
+		// Skip if this is the customizer and current option wasn't 
+		// sent in the input. This current method means we can't have 
+		// any checkboxes or multichecks in the customizer.
+		// (something to fix later hopefully)
+		if( isset( $_POST['customized'] ) && ! isset( $input[$id] ) )
+			continue;
+
+		// Set checkbox to false if it wasn't sent in the $_POST
+		if ( 'checkbox' == $option['type'] && ! isset( $input[$id] ) )
+			$input[$id] = '0';
+
+		// Set each item in the multicheck to false if it wasn't sent in the $_POST
+		if ( 'multicheck' == $option['type'] && ! isset( $input[$id] ) )
+			foreach ( $option['options'] as $key => $value )
+				$input[$id][$key] = '0';
+
+		// For a value to be submitted to database it must pass through a sanitization filter
+		if ( has_filter( 'of_sanitize_' . $option['type'] ) )
+			$clean[$id] = apply_filters( 'of_sanitize_' . $option['type'], $input[$id], $option );
+			
+	}
+	
+	// Add update message for page re-fresh
+	add_settings_error( $option_name.'_'.$_POST['current_lang'], 'save_options', __( 'Options saved.', TB_GETTEXT_DOMAIN ), 'updated fade' );
+	
+	// Return sanitized options
+	return $clean;
 }
 
 /**
@@ -588,33 +619,17 @@ if( ! function_exists( 'optionsframework_page' ) ) { // This check is only neede
 			$current_lang = $_GET['themeblvd_lang'];
 		if( ! in_array( $current_lang, $langs_check ) )
 			$current_lang = $default_lang;
-			
-		// Retrieive options framework container same as normal
-		$optionsframework_settings = get_option('optionsframework');
 		
 		// Gets the unique option id
-		if ( isset( $optionsframework_settings['id'] ) ) {
-			// Retrieve options ID as normal
-			$option_name = $optionsframework_settings['id'];
-			$option_base = $optionsframework_settings['id'];
-			
-			// And here's our twist to the system --
-			// If we're editing options for a specific language 
-			// that is NOT the default, we adjust the options 
-			// framework ID to append '_{language}'.
-			if( $default_lang != $current_lang )
-				$option_name .= '_'.$current_lang;
-				
-		} else {
-			// Total fallback. Should never get used.
-			$option_name = 'optionsframework';
-			$option_base = 'optionsframework';
-		}
+		$option_name = tb_wpml_get_option_name();
+		$option_base = $option_name;
 		
-		// Determine value for settings_fields()
-		$settings_fields = 'optionsframework';
-		if( $current_lang != $default_lang )
-			$settings_fields .= '_'.$current_lang;
+		// And here's our twist to the system --
+		// If we're editing options for a specific language 
+		// that is NOT the default, we adjust the options 
+		// framework ID to append '_{language}'.
+		if( $default_lang != $current_lang )
+			$option_name .= '_'.$current_lang;
 		
 		// Get settings and form
 		$settings = get_option($option_name);
@@ -634,7 +649,8 @@ if( ! function_exists( 'optionsframework_page' ) ) { // This check is only neede
 				<div class="metabox-holder">
 				    <div id="optionsframework">
 						<input type="hidden" value="<?php echo $option_base; ?>" name="option_page_base">
-						<?php settings_fields($settings_fields); ?>
+						<input type="hidden" value="<?php echo $current_lang; ?>" name="current_lang">
+						<?php settings_fields($option_name); ?>
 						<?php echo $return[0]; /* Settings */ ?>
 				        <div id="optionsframework-submit">
 						<input type="submit" class="button-primary" name="update" value="<?php esc_attr_e( 'Save Options', 'tb_wpml' ); ?>" />
@@ -706,8 +722,8 @@ function tb_wpml_admin_module_header( $page ) {
 			</h3>
 			<span class="tb-wpml-logo">Theme Blvd WPML Bridge</span>
 			<div class="tb-wpml-nav">
-				<ul>
-					<?php if( $langs ) : ?>
+				<?php if( $langs ) : ?>
+					<ul>
 						<?php foreach( $langs as $key => $lang ) : ?>
 							<li<?php if($key == $current_lang ) echo ' class="active"'; ?>>
 								<a href="?page=options-framework&themeblvd_lang=<?php echo $key ?>">
@@ -715,8 +731,8 @@ function tb_wpml_admin_module_header( $page ) {
 								</a>
 							</li>
 						<?php endforeach; ?>
-					<?php endif; ?>
-				</ul>
+					</ul>
+				<?php endif; ?>
 				<?php if( $current_lang != $default_lang ) : ?>
 					<input type="submit" class="reset-button button-secondary" name="match" value="<?php esc_attr_e( 'Match Default Language', 'tb_wpml' ); ?>" onclick="return confirm( '<?php print esc_js( __( 'Click OK to match options. You will lose your current settings for this language and they will be matched to whatever you\'ve set for your default language.', 'tb_wpml' ) ); ?>' );" />
 				<?php endif; ?>
@@ -882,13 +898,8 @@ function tb_wpml_validate( $input ) {
  */
 
 function tb_wpml_get_admin_page_id() {
-	// Get options framework container
-	$optionsframework_settings = get_option( 'optionsframework' );
-	// Set default options name base
-	$option_name = 'optionsframework';
-	// If options framework ID has been found, assign it
-	if ( isset( $optionsframework_settings['id'] ) )
-		$option_name = $optionsframework_settings['id'];
+	// Get global options ID
+	$option_name = tb_wpml_get_option_name();
 	// Add on our plugin's unique identifier
 	$option_name .= '_tb_wpml';
 	// Return with filters applied	
