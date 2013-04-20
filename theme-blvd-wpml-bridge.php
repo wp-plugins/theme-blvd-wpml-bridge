@@ -3,7 +3,7 @@
 Plugin Name: Theme Blvd WPML Bridge
 Plugin URI: http://wpml.themeblvd.com
 Description: This plugin creates a bridge between the Theme Blvd framework and the WPML plugin.
-Version: 1.1.2
+Version: 1.1.3
 Author: Jason Bobich
 Author URI: http://jasonbobich.com
 License: GPL2
@@ -26,7 +26,7 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-define( 'TB_WPML_BRIDGE_PLUGIN_VERSION', '1.1.2' );
+define( 'TB_WPML_BRIDGE_PLUGIN_VERSION', '1.1.3' );
 define( 'TB_WPML_BRIDGE_PLUGIN_DIR', dirname( __FILE__ ) );
 define( 'TB_WPML_BRIDGE_PLUGIN_URI', plugins_url( '' , __FILE__ ) );
 
@@ -293,6 +293,44 @@ add_action( 'themeblvd_wpml_nav', 'tb_wpml_flaglist' );
 
 if( ! function_exists( 'tb_wpml_breadcrumbs' ) ) {
 	function tb_wpml_breadcrumbs() {
+		if( themeblvd_show_breadcrumbs() ){
+			?>
+			<div id="breadcrumbs">
+				<div class="breadcrumbs-inner">
+					<div class="breadcrumbs-content">
+						<div class="breadcrumb">
+							<?php do_action( 'tb_wpml_breadcrumbs_before' ); ?>
+							<?php do_action( 'icl_navigation_breadcrumb' ); // Display WPML breadcrumbs ?>
+							<?php do_action( 'tb_wpml_breadcrumbs_after' ); ?>
+						</div><!-- .breadcrumb (end) -->
+					</div><!-- .breadcrumbs-content (end) -->
+				</div><!-- .breadcrumbs-inner (end) -->
+			</div><!-- #breadcrumbs (end) -->
+			<?php
+		}
+	}
+}
+
+/**
+ * New display for action: themeblvd_breadcrumbs
+ *
+ * This function is a copy of the old tb_wpml_breadcrumbs 
+ * function. It only gets added with Theme Blvd themes 
+ * prior to framework v2.2. -- See tb_wpml_actions()
+ * 
+ * @since 1.1.3
+ * @deprecated
+ */
+
+if( ! function_exists( 'tb_wpml_breadcrumbs_legacy' ) ) {
+	function tb_wpml_breadcrumbs_legacy() {
+		
+		// Fix for conflict with page.php and WPML 
+		// CMS Nav v1.3 in older themes prior to TB 
+		// framework v2.2
+		if( is_page() )
+			rewind_posts();
+
 		wp_reset_query();
 		global $post;
 		$display = '';
@@ -343,7 +381,10 @@ function tb_wpml_actions(){
 	// Only swap breadcrumbs if user has "WPML CMS Nav" add-on installed.
 	if( class_exists( 'WPML_CMS_Navigation' ) ) {
 		remove_action( 'themeblvd_breadcrumbs', 'themeblvd_breadcrumbs_default' );
-		add_action( 'themeblvd_breadcrumbs', 'tb_wpml_breadcrumbs' );
+		if( function_exists('themeblvd_show_breadcrumbs') )
+			add_action( 'themeblvd_breadcrumbs', 'tb_wpml_breadcrumbs' );
+		else
+			add_action( 'themeblvd_breadcrumbs', 'tb_wpml_breadcrumbs_legacy' );
 	}
 	// Theme Locations
 	$locations = tb_wpml_get_theme_locations();
@@ -421,7 +462,7 @@ function tb_wpml_bridge_add_options_page() {
  */
 
 function tb_wpml_bridge_options_page() { // Can we delete this for optionsframework_page() ?
-	
+
 	// Option name
 	$option_name = themeblvd_get_option_name(); // can safely use this function because we know we're in framework v2.2 at this point
 	
@@ -772,7 +813,7 @@ if( ! function_exists( 'optionsframework_page' ) ) { // This check is only neede
 			        <?php echo $return[1]; ?>
 			    </h2>
 				<div class="metabox-holder">
-				    <div id="optionsframework">
+				    <div id="optionsframework" class="tb-options-js">
 						<input type="hidden" value="<?php echo $option_base; ?>" name="option_page_base">
 						<input type="hidden" value="<?php echo $current_lang; ?>" name="current_lang">
 						<?php settings_fields($option_name); ?>
